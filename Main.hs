@@ -7,6 +7,7 @@ import Data.Maybe
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import System.Environment
+import System.Exit
 
 main :: IO ()
 main = do
@@ -30,7 +31,12 @@ stackageRequest path = do
   req <- parseRequest $ url ++ path
   hist <- responseOpenHistory req mgr
   let redirs = catMaybes . map (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
-  unless (null redirs) $ do
+  if (null redirs)
+    then giveup
+    else do
     let loc = last redirs
-    when (url `isPrefixOf` B.unpack loc) $
-      B.putStrLn loc
+    if (url `isPrefixOf` B.unpack loc)
+      then B.putStrLn loc
+      else giveup
+  where
+    giveup = die $ path ++ " not found"
