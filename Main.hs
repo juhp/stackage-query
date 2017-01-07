@@ -12,19 +12,17 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [s] | s `elem` streams -> showSnap s
-    [p] -> query "nightly" p
-    [s, p] -> query s p
+    [s] | s `elem` streams -> stackageRequest s
+    [p] -> stackageRequest $ pkgPath "nightly" p
+    [s, p] -> stackageRequest $ pkgPath s p
     _ -> error "Usage: stackage-query [snap] [pkg]"
+  where
+    pkgPath :: String -> String -> String
+    pkgPath s p = s ++ "/package/" ++ p
 
-query snap pkg = do
-  mgr <- newManager tlsManagerSettings
-  req <- parseRequest $ "http://www.stackage.org/" ++ snap ++ "/package/" ++ pkg
-  r <- responseOpenHistory req mgr
-  B.putStrLn $ last . catMaybes . map (lookup "Location" . responseHeaders . snd) $ hrRedirects r
 
-showSnap s = do
+stackageRequest path = do
   mgr <- newManager tlsManagerSettings
-  req <- parseRequest $ "http://www.stackage.org/" ++ s
-  r <- responseOpenHistory req mgr
-  B.putStrLn $ last . catMaybes . map (lookup "Location" . responseHeaders . snd) $ hrRedirects r
+  req <- parseRequest $ "https://www.stackage.org/" ++ path
+  hist <- responseOpenHistory req mgr
+  B.putStrLn $ last . catMaybes . map (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
