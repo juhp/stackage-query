@@ -1,3 +1,5 @@
+# Stackage-Query
+
 Small tool that queries (returns url of) package versions on Stackage.
 
 This is just a simple that looks at Stackage's HTTP redirects to determine
