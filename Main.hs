@@ -30,12 +30,12 @@ stackageRequest path = do
   let url = "https://www.stackage.org/"
   req <- parseRequest $ url ++ path
   hist <- responseOpenHistory req mgr
-  let redirs = catMaybes . map (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
-  if (null redirs)
+  let redirs = mapMaybe (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
+  if null redirs
     then giveup
     else do
     let loc = last redirs
-    if (url `isPrefixOf` B.unpack loc)
+    if url `isPrefixOf` B.unpack loc
       then B.putStrLn loc
       else giveup
   where
