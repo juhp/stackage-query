@@ -20,7 +20,7 @@ parseString :: String -> Parser String
 parseString lbl = strArgument $ metavar lbl
 
 listParser :: Parser Command
-listParser = List <$> parseString "SNAP" <*> some (parseString "PKG")
+listParser = List <$> parseString "SNAP" <*> some (parseString "PKG...")
 
 configParser :: Parser Command
 configParser = Config <$> parseString "SNAP"
@@ -29,7 +29,7 @@ commandParser :: ParserInfo Command
 commandParser = info (helper <*> commands) $ progDesc "try --help for more info" where
     commands = subparser $ mconcat
       [ command "list"
-        (info listParser (progDesc "Show Stackage SNAP version of PKG"))
+        (info listParser (progDesc "Show Stackage SNAP version of PKGs"))
       , command "config"
         (info configParser (progDesc "Download cabal.config file for SNAP"))
       ]
