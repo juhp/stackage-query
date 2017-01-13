@@ -13,14 +13,14 @@ import Options.Applicative
 import System.Environment
 import System.Exit
 
-data Command = List String String
+data Command = List String [String]
              | Config String
 
 parseString :: String -> Parser String
 parseString lbl = strArgument $ metavar lbl
 
 listParser :: Parser Command
-listParser = List <$> parseString "SNAP" <*> parseString "PKG"
+listParser = List <$> parseString "SNAP" <*> some (parseString "PKG")
 
 configParser :: Parser Command
 configParser = Config <$> parseString "SNAP"
@@ -38,9 +38,30 @@ main :: IO ()
 main = do
   cmd <- execParser commandParser
   case cmd of
-    List s p -> stackageRequest $ pkgPath s p
+    List s ps -> stackageRequest s ps
     Config s -> stackageConfig s
+
+stackageRequest s ps = do
+  mgr <- newManager tlsManagerSettings
+  mapM_ (sendReq mgr) ps
   where
+    sendReq mgr p = do
+      let path = pkgPath s p
+      req <- parseRequest $ url ++ path
+      hist <- responseOpenHistory req mgr
+      let redirs = mapMaybe (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
+      if null redirs
+        then giveup path
+        else do
+        let loc = last redirs
+        if url `isPrefixOf` B.unpack loc
+          then B.putStrLn loc
+          else giveup path
+
+    url = "https://www.stackage.org/"
+
+    giveup path = die $ path ++ " not found"
+
     pkgPath :: String -> String -> String
     pkgPath s p =
       if checkSnap s
@@ -53,22 +74,6 @@ main = do
       any (`isPrefixOf` s) (map (++ "-") streams)
       where
         streams = ["lts", "nightly"]
-
-stackageRequest path = do
-  mgr <- newManager tlsManagerSettings
-  let url = "https://www.stackage.org/"
-  req <- parseRequest $ url ++ path
-  hist <- responseOpenHistory req mgr
-  let redirs = mapMaybe (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
-  if null redirs
-    then giveup
-    else do
-    let loc = last redirs
-    if url `isPrefixOf` B.unpack loc
-      then B.putStrLn loc
-      else giveup
-  where
-    giveup = die $ path ++ " not found"
 
 stackageConfig snap = do
   req <- parseRequest $ "https://www.stackage.org/" ++ snap ++ "/cabal.config"
