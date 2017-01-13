@@ -1,5 +1,3 @@
--- documentation, see http://haskell.org/cabal/users-guide/
-
 name:                stackage-query
 version:             0.1.0
 synopsis:            Stackage package query
@@ -16,9 +14,7 @@ cabal-version:       >=1.10
 
 executable stackage
   main-is:             Main.hs
-  -- other-modules:       
-  -- other-extensions:    
-  build-depends:       base, bytestring, http-client, http-client-tls,
-                       http-conduit, optparse-applicative, text
-  -- hs-source-dirs:      
+  build-depends:       base, bytestring, filepath, http-client,
+                       http-client-tls, http-conduit, optparse-applicative
+  GHC-options:        -fwarn-missing-signatures -Wall
   default-language:    Haskell2010
