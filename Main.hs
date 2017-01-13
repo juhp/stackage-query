@@ -10,13 +10,11 @@ import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Network.HTTP.Simple
 import Options.Applicative
-import Stackage.ShowBuildPlan
 import System.Environment
 import System.Exit
 
 data Command = List String String
              | Config String
-             | BuildPlan String String
 
 parseString :: String -> Parser String
 parseString lbl = strArgument $ metavar lbl
@@ -27,9 +25,6 @@ listParser = List <$> parseString "SNAP" <*> parseString "PKG"
 configParser :: Parser Command
 configParser = Config <$> parseString "SNAP"
 
-buildplanParser :: Parser Command
-buildplanParser = BuildPlan <$> parseString "SNAP" <*> parseString "PKG"
-
 commandParser :: ParserInfo Command
 commandParser = info (helper <*> commands) $ progDesc "try --help for more info" where
     commands = subparser $ mconcat
@@ -37,8 +32,6 @@ commandParser = info (helper <*> commands) $ progDesc "try --help for more info"
         (info listParser (progDesc "Show Stackage SNAP version of PKG"))
       , command "config"
         (info configParser (progDesc "Download cabal.config file for SNAP"))
-      , command "buildplan"
-        (info buildplanParser (progDesc "Show SNAP buildplan for PKG"))
       ]
 
 main :: IO ()
@@ -47,7 +40,6 @@ main = do
   case cmd of
     List s p -> stackageRequest $ pkgPath s p
     Config s -> stackageConfig s
-    BuildPlan s p -> stackageBuildplan s p
   where
     pkgPath :: String -> String -> String
     pkgPath s p =
@@ -83,6 +75,3 @@ stackageConfig snap = do
   response <- httpLBS req
   L.writeFile "cabal.config" $ getResponseBody response
 
-stackageBuildplan :: String -> String -> IO ()
-stackageBuildplan snap pkg =
-  T.unpack . toSimpleText <$> getBuildPlan defaultSettings [mkPackageName $ T.pack pkg] >>= putStr
