@@ -79,9 +79,9 @@ stackageList opts s ps = do
         let loc = B.unpack $ last redirs
         if topurl `isPrefixOf` loc
           then putStrLn (if showurl opts then loc else takeFileName loc)
-          else giveup $ show req
+          else giveup p
 
-    giveup u = die $ u ++ " not found"
+    giveup u = die $ u ++ " not found in " ++ s
 
 
 stackageConfig :: Options -> String -> IO ()
