@@ -49,7 +49,7 @@ main = do
   where
     run (Args opts cmd) =
       case cmd of
-        List s ps | checkSnap s -> stackageRequest opts s ps
+        List s ps | checkSnap s -> stackageList opts s ps
         Config s | checkSnap s -> stackageConfig opts s
         _ -> error "SNAP should be start with 'lts' or 'nightly'"
 
@@ -63,8 +63,8 @@ checkSnap s =
 topurl :: String
 topurl = "https://www.stackage.org/"
 
-stackageRequest :: Options -> String -> [String] -> IO ()
-stackageRequest opts s ps = do
+stackageList :: Options -> String -> [String] -> IO ()
+stackageList opts s ps = do
   mgr <- newManager tlsManagerSettings
   mapM_ (sendReq mgr) ps
   where
