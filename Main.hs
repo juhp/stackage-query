@@ -44,7 +44,7 @@ argsParser = Args <$> optParser <*> commandParser
 
 main :: IO ()
 main = do
-  cmd <- execParser (info (helper <*> argsParser) $ progDesc "Try --help for more info")
+  cmd <- customExecParser p (info (helper <*> argsParser) $ progDesc "Stackage query tool")
   run cmd
   where
     run (Args opts cmd) =
@@ -52,6 +52,7 @@ main = do
         List s ps | checkSnap s -> stackageList opts s ps
         Config s | checkSnap s -> stackageConfig opts s
         _ -> error "SNAP should be start with 'lts' or 'nightly'"
+    p = prefs showHelpOnEmpty
 
 checkSnap :: String -> Bool
 checkSnap s =
