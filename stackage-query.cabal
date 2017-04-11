@@ -14,7 +14,18 @@ cabal-version:       >=1.10
 
 executable stackage
   main-is:             Main.hs
-  build-depends:       base, bytestring, filepath, http-client,
-                       http-client-tls, http-conduit, optparse-applicative
+  build-depends:       base,
+                       bytestring,
+                       Cabal,
+                       containers,
+                       directory,
+                       filepath,
+                       http-client,
+                       http-client-tls,
+                       http-conduit,
+                       optparse-applicative,
+                       stackage-types,
+                       text,
+                       yaml
   GHC-options:        -fwarn-missing-signatures -Wall
   default-language:    Haskell2010
