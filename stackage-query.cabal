@@ -24,6 +24,7 @@ executable stackage
                        http-client-tls,
                        http-conduit,
                        optparse-applicative,
+                       process,
                        stackage-types,
                        text,
                        yaml

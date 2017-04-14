@@ -17,6 +17,7 @@ import Options.Applicative
 import System.Directory
 import System.Exit
 import System.FilePath
+import System.Process (rawSystem)
 
 import Stackage.Types hiding (unPackageName)
 import Data.Foldable (traverse_)
@@ -141,21 +142,46 @@ getBuildPlan snap = do
   haveDir <- doesDirectoryExist configDir
   unless haveDir $ createDirectory configDir
   let project = snapProject snap
-      projectDir = configDir </> project
---  haveProj <- doesDirectoryExist projectDir
---  unless haveProj $ cloneProject projectDir project
-  let pth = projectDir </> showSnap snap
-  ebp <- decodeFileEither (pth ++ ".yaml")
+      projectDir = configDir </> show project
+  haveProj <- doesDirectoryExist projectDir
+  unless haveProj $ cloneProject configDir project
+  let yaml = projectDir </> showSnap snap ++ ".yaml"
+  haveYaml <- doesFileExist yaml
+  when (not haveYaml) $ updateProject projectDir
+  ebp <- decodeFileEither yaml
   either (error . prettyPrintParseException) return ebp
 
-snapProject :: SnapshotType -> String
-snapProject (STLTS _ _) = "lts-haskell"
-snapProject _ = "stackage-nightly"
+data Project = LTS | Nightly
+
+instance Show Project where
+  show LTS = "lts-haskell"
+  show Nightly = "stackage-nightly"
+
+snapProject :: SnapshotType -> Project
+snapProject (STLTS _ _) = LTS
+snapProject _ = Nightly
 
 showSnap :: SnapshotType -> String
-showSnap STNightly = "nightly-2017-04-10"
+showSnap STNightly = "nightly-2017-04-12"
 showSnap (STNightly2 date) = "nightly-" ++ show date
 showSnap (STLTS major minor) = "lts-" ++ show major ++ "." ++ show minor
+
+cmd_ :: String -> [String] -> IO ()
+cmd_ c args = do
+  ret <- rawSystem c args
+  case ret of
+    ExitSuccess -> return ()
+    ExitFailure n -> error $ "\"" ++ unwords (c:args) ++ "\" failed with exit code " ++ show n
+
+cloneProject :: FilePath -> Project -> IO ()
+cloneProject dir proj = do
+  let url = "git://github.com/fpco" </> show proj
+  putStrLn $ "Cloning " ++ url
+  cmd_ "git" ["-C", dir, "clone", url]
+
+updateProject :: FilePath -> IO ()
+updateProject dir = do
+  cmd_ "git" ["-C", dir, "pull"]
 
 buildplanGHC :: SnapshotType -> IO ()
 buildplanGHC snap = do
