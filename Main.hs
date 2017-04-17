@@ -33,6 +33,7 @@ data Command = List SnapshotType [String]
              | Ghc SnapshotType
              | Core SnapshotType
              | Tools SnapshotType
+             | Packages SnapshotType
              | Package SnapshotType String
              | Users SnapshotType String
              | Github SnapshotType String
@@ -73,6 +74,9 @@ commandParser =
   command "tools" (info (Tools <$> parseSnap)
                     (progDesc "Tools for SNAP"))
   <>
+  command "packages" (info (Packages <$> parseSnap)
+                       (progDesc "All packages in SNAP"))
+  <>
   command "package" (info (Package <$> parseSnap <*> parseString "PKG")
                       (progDesc "PKG info for SNAP"))
   <>
@@ -98,6 +102,7 @@ main = do
         Ghc s -> buildplanGHC s
         Core s -> buildplanCore s
         Tools s -> buildplanTools s
+        Packages s -> buildplanPackages s
         Package s pkg -> buildplanPackage s pkg
         Users s pkg -> buildplanUsers s pkg
         Github s pkg -> buildplanGithub s pkg
@@ -200,6 +205,11 @@ buildplanTools snap = do
   bp <- getBuildPlan snap
   traverse_ (putStrLn . showPkgVer) $ bpTools bp
 
+buildplanPackages :: SnapshotType -> IO ()
+buildplanPackages snap = do
+  bp <- getBuildPlan snap
+  traverse_ (putStrLn . showPkgVer) $ Data.Map.Strict.assocs $ fmap ppVersion $ bpPackages bp
+
 evalPackageBuildPlan :: SnapshotType -> String -> (PackagePlan -> String) -> IO ()
 evalPackageBuildPlan snap pkg expr = do
   bp <- getBuildPlan snap
@@ -219,4 +229,4 @@ buildplanGithub snap pkg =
   evalPackageBuildPlan snap pkg (unwords . Set.elems . Set.map T.unpack . ppGithubPings)
 
 showPkgVer :: (PackageName, Version) -> String
-showPkgVer (p,v) = unPackageName p ++ "-" ++ showVersion v
+showPkgVer (p,v) = unPackageName p ++ " " ++ showVersion v
