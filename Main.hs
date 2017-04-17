@@ -24,24 +24,30 @@ import Data.Foldable (traverse_)
 import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName(..), unPackageName)
 
-data Args = Args Options Command
+data Args = Args Command
 
-newtype Options = Options {showurl :: Bool}
+newtype UrlOption = UrlOption {showurl :: Bool}
 
-data Command = List SnapshotType [String]
-             | Config SnapshotType
+newtype ConsumerOption = ConsumerOption {threshold :: Int}
+
+data Command = List UrlOption SnapshotType [String]
+             | Config UrlOption SnapshotType
              | Ghc SnapshotType
              | Core SnapshotType
              | Tools SnapshotType
              | Packages SnapshotType
-             | Consumers SnapshotType
+             | Consumers ConsumerOption SnapshotType
              | Package SnapshotType String
              | Users SnapshotType String
              | Github SnapshotType String
 
-optParser :: Parser Options
-optParser = Options <$> switch
+urlParser :: Parser UrlOption
+urlParser = UrlOption <$> switch
   (long "url" <> short 'u' <> help "Show url")
+
+consumeParser :: Parser ConsumerOption
+consumeParser = ConsumerOption <$> option auto
+  (long "minimum" <> short 'm' <> metavar "THRESHOLD" <> value 5 <> help "Show packages with more than MINIMUM consumers (default 5)")
 
 parseString :: String -> Parser String
 parseString lbl = strArgument $ metavar lbl
@@ -60,10 +66,10 @@ parseSnap = argument snap $ metavar "SNAP"
 commandParser :: Parser Command
 commandParser =
   subparser $
-  command "list" (info (List <$> parseSnap <*> some (parseString "PKG..."))
+  command "list" (info (List <$> urlParser <*> parseSnap <*> some (parseString "PKG..."))
                    (progDesc "Show Stackage SNAP version of PKGs"))
   <>
-  command "config" (info (Config <$> parseSnap)
+  command "config" (info (Config <$> urlParser <*> parseSnap)
                     (progDesc "Download cabal.config file for SNAP"))
   <>
   command "ghc" (info (Ghc <$> parseSnap)
@@ -78,7 +84,7 @@ commandParser =
   command "packages" (info (Packages <$> parseSnap)
                        (progDesc "All packages in SNAP"))
   <>
-  command "consumers" (info (Consumers <$> parseSnap)
+  command "consumers" (info (Consumers <$> consumeParser <*> parseSnap)
                        (progDesc "No of users of packages in SNAP"))
   <>
   command "package" (info (Package <$> parseSnap <*> parseString "PKG")
@@ -91,7 +97,7 @@ commandParser =
                      (progDesc "Owners for PKG in SNAP"))
 
 argsParser :: Parser Args
-argsParser = Args <$> optParser <*> commandParser
+argsParser = Args <$> commandParser
 
 main :: IO ()
 main = do
@@ -99,15 +105,15 @@ main = do
          (info (helper <*> argsParser) $ progDesc "Stackage query tool")
   run cmd
   where
-    run (Args opts cmd) =
+    run (Args cmd) =
       case cmd of
-        List s ps -> stackageList opts s ps
-        Config s -> stackageConfig opts s
+        List opts s ps -> stackageList opts s ps
+        Config opts s -> stackageConfig opts s
         Ghc s -> buildplanGHC s
         Core s -> buildplanCore s
         Tools s -> buildplanTools s
         Packages s -> buildplanPackages s
-        Consumers s -> buildplanConsumers s
+        Consumers opts s -> buildplanConsumers opts s
         Package s pkg -> buildplanPackage s pkg
         Users s pkg -> buildplanUsers s pkg
         Github s pkg -> buildplanGithub s pkg
@@ -115,7 +121,7 @@ main = do
 topurl :: String
 topurl = "https://www.stackage.org/"
 
-stackageList :: Options -> SnapshotType -> [String] -> IO ()
+stackageList :: UrlOption -> SnapshotType -> [String] -> IO ()
 stackageList opts s ps = do
   mgr <- newManager tlsManagerSettings
   mapM_ (sendReq mgr) ps
@@ -136,7 +142,7 @@ stackageList opts s ps = do
     giveup u = die $ u ++ " not found in " ++ showSnap s
 
 
-stackageConfig :: Options -> SnapshotType -> IO ()
+stackageConfig :: UrlOption -> SnapshotType -> IO ()
 stackageConfig opts snap = do
   let url = topurl ++ showSnap snap </> "cabal.config"
   req <- parseRequest url
@@ -215,16 +221,15 @@ buildplanPackages snap = do
   bp <- getBuildPlan snap
   traverse_ (putStrLn . showPkgVer) $ Data.Map.Strict.assocs $ fmap ppVersion $ bpPackages bp
 
-buildplanConsumers :: SnapshotType -> IO ()
-buildplanConsumers snap = do
+buildplanConsumers :: ConsumerOption -> SnapshotType -> IO ()
+buildplanConsumers opts snap = do
   bp <- getBuildPlan snap
   traverse_ putPkgConsumption $ Data.Map.Strict.assocs $ fmap ppUsers $ bpPackages bp
   where
     putPkgConsumption :: (PackageName, Set.Set PackageName) -> IO ()
     putPkgConsumption (p, users) = do
       let n = length users
-      -- make this configurable
-      when (n > 4) $
+      when (n >= threshold opts) $
         putStrLn $ (show n) ++ " " ++ unPackageName p
 
 evalPackageBuildPlan :: SnapshotType -> String -> (PackagePlan -> String) -> IO ()
