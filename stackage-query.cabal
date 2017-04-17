@@ -16,7 +16,7 @@ executable stackage
   main-is:             Main.hs
   build-depends:       base,
                        bytestring,
-                       Cabal,
+                       Cabal >= 1.22,
                        containers,
                        directory,
                        filepath,
