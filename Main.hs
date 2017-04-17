@@ -34,6 +34,7 @@ data Command = List SnapshotType [String]
              | Core SnapshotType
              | Tools SnapshotType
              | Packages SnapshotType
+             | Consumers SnapshotType
              | Package SnapshotType String
              | Users SnapshotType String
              | Github SnapshotType String
@@ -77,6 +78,9 @@ commandParser =
   command "packages" (info (Packages <$> parseSnap)
                        (progDesc "All packages in SNAP"))
   <>
+  command "consumers" (info (Consumers <$> parseSnap)
+                       (progDesc "No of users of packages in SNAP"))
+  <>
   command "package" (info (Package <$> parseSnap <*> parseString "PKG")
                       (progDesc "PKG info for SNAP"))
   <>
@@ -103,6 +107,7 @@ main = do
         Core s -> buildplanCore s
         Tools s -> buildplanTools s
         Packages s -> buildplanPackages s
+        Consumers s -> buildplanConsumers s
         Package s pkg -> buildplanPackage s pkg
         Users s pkg -> buildplanUsers s pkg
         Github s pkg -> buildplanGithub s pkg
@@ -209,6 +214,18 @@ buildplanPackages :: SnapshotType -> IO ()
 buildplanPackages snap = do
   bp <- getBuildPlan snap
   traverse_ (putStrLn . showPkgVer) $ Data.Map.Strict.assocs $ fmap ppVersion $ bpPackages bp
+
+buildplanConsumers :: SnapshotType -> IO ()
+buildplanConsumers snap = do
+  bp <- getBuildPlan snap
+  traverse_ putPkgConsumption $ Data.Map.Strict.assocs $ fmap ppUsers $ bpPackages bp
+  where
+    putPkgConsumption :: (PackageName, Set.Set PackageName) -> IO ()
+    putPkgConsumption (p, users) = do
+      let n = length users
+      -- make this configurable
+      when (n > 4) $
+        putStrLn $ (show n) ++ " " ++ unPackageName p
 
 evalPackageBuildPlan :: SnapshotType -> String -> (PackagePlan -> String) -> IO ()
 evalPackageBuildPlan snap pkg expr = do
