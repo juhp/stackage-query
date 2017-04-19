@@ -1,2 +1,2 @@
 - list pkg deps
-- print latest nightly and lts
+- fix sorting for latest lts

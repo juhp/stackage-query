@@ -18,7 +18,7 @@ import Options.Applicative
 import System.Directory
 import System.Exit
 import System.FilePath
-import System.Process (rawSystem)
+import System.Process (rawSystem, readProcess)
 
 import Stackage.Types hiding (unPackageName)
 import Data.Foldable (traverse_)
@@ -34,8 +34,8 @@ newtype ConsumerOption = ConsumerOption {threshold :: Int}
 data Snapshot = LatestNightly | LatestLTS | NightlySnap String | LtsSnap String | LtsMajor String
 
 instance Show Snapshot where
-  show LatestNightly = "nightly-2017-04-12"
-  show LatestLTS = "lts-8.9"
+  show LatestNightly = "nightly"
+  show LatestLTS = "lts"
   show (NightlySnap date) = "nightly-" ++ date
   show (LtsSnap ver) = "lts-" ++ ver
   show (LtsMajor ver) = "lts-" ++ ver
@@ -54,6 +54,17 @@ instance Read Snapshot where
 removePrefix :: String -> String-> String
 removePrefix pref orig = fromMaybe orig (stripPrefix pref orig)
 
+data Project = LTS | Nightly
+
+instance Show Project where
+  show LTS = "lts-haskell"
+  show Nightly = "stackage-nightly"
+
+instance Read Project where
+  readsPrec _ "lts" = [(LTS,"")]
+  readsPrec _ "nightly" = [(Nightly,"")]
+  readsPrec _ _ = []
+
 data Command = List UrlOption Snapshot [String]
              | Config UrlOption Snapshot
              | Ghc Snapshot
@@ -64,6 +75,8 @@ data Command = List UrlOption Snapshot [String]
              | Package Snapshot String
              | Users Snapshot String
              | Github Snapshot String
+             | Latest Project
+             | Update Project
 
 urlParser :: Parser UrlOption
 urlParser = UrlOption <$> switch
@@ -78,6 +91,9 @@ parseString lbl = strArgument $ metavar lbl
 
 parseSnap :: Parser Snapshot
 parseSnap = argument auto $ metavar "SNAP"
+
+parseProject :: Parser Project
+parseProject = argument auto $ metavar "PROJECT"
 
 commandParser :: Parser Command
 commandParser =
@@ -111,6 +127,12 @@ commandParser =
   <>
   command "github" (info (Github <$> parseSnap <*> parseString "PKG")
                      (progDesc "Owners for PKG in SNAP"))
+  <>
+  command "latest" (info (Latest <$> parseProject)
+                     (progDesc "Latest snap for PROJECT (nightly or lts)"))
+  <>
+  command "update" (info (Update <$> parseProject)
+                     (progDesc "git update PROJECT (nightly or lts)"))
 
 argsParser :: Parser Args
 argsParser = Args <$> commandParser
@@ -133,6 +155,8 @@ main = do
         Package s pkg -> buildplanPackage s pkg
         Users s pkg -> buildplanUsers s pkg
         Github s pkg -> buildplanGithub s pkg
+        Latest prj -> buildplanLatest prj
+        Update prj -> buildplanUpdate prj
 
 topurl :: String
 topurl = "https://www.stackage.org/"
@@ -167,24 +191,30 @@ stackageConfig opts snap = do
   when (showurl opts) $
     putStrLn url
 
-getBuildPlan :: Snapshot -> IO BuildPlan
-getBuildPlan snap = do
+getConfigDir :: IO FilePath
+getConfigDir = do
   home <- getHomeDirectory
-  let configDir = home </> ".stackage-query"
-  createDirectoryIfMissing False configDir
-  let project = snapProject snap
-      projectDir = configDir </> show project
+  let confdir = home </> ".stackage-query"
+  createDirectoryIfMissing False confdir
+  return confdir
+
+getProjectDir :: Project -> IO FilePath
+getProjectDir project = do
+  configDir <- getConfigDir
+  let projectDir = configDir </> show project
   haveProj <- doesDirectoryExist projectDir
   unless haveProj $ cloneProject configDir project
-  yaml <- findSnap True projectDir snap
-  ebp <- decodeFileEither yaml
+  return projectDir
+
+findBuildPlanYaml :: Snapshot -> IO FilePath
+findBuildPlanYaml snap = do
+  projectDir <- getProjectDir $ snapProject snap
+  findSnap True projectDir snap
+
+getBuildPlan :: Snapshot -> IO BuildPlan
+getBuildPlan snap = do
+  ebp <- findBuildPlanYaml snap >>= decodeFileEither
   either (error . prettyPrintParseException) return ebp
-
-data Project = LTS | Nightly
-
-instance Show Project where
-  show LTS = "lts-haskell"
-  show Nightly = "stackage-nightly"
 
 snapProject :: Snapshot -> Project
 snapProject LatestLTS = LTS
@@ -205,28 +235,55 @@ findSnap update dir snap = do
       error $ "Snap " ++ show snap ++ " not found"
     else return $ dir </> last fs
 
-cmd_ :: String -> [String] -> IO ()
-cmd_ c args = do
+system :: String -> [String] -> IO String
+system c args = removeTrailingNewline <$> readProcess c args ""
+  where
+    removeTrailingNewline :: String -> String
+    removeTrailingNewline "" = ""
+    removeTrailingNewline cs =
+      if last cs == '\n'
+      then init cs
+      else cs
+
+system_ :: String -> [String] -> IO ()
+system_ c args = do
   ret <- rawSystem c args
   case ret of
     ExitSuccess -> return ()
     ExitFailure n -> error $ "\"" ++ unwords (c:args) ++ "\" failed with exit code " ++ show n
 
+git :: FilePath -> String -> [String] -> IO String
+git dir cmd args =
+  system "git" $ ["-C", dir] ++ cmd:args
+
+git_ :: FilePath -> String -> [String] -> IO ()
+git_ dir cmd args =
+  system_ "git" $ ["-C", dir] ++ cmd:args
+
 cloneProject :: FilePath -> Project -> IO ()
 cloneProject dir proj = do
   let url = "git://github.com/fpco" </> show proj
   putStrLn $ "Cloning " ++ url
-  cmd_ "git" ["-C", dir, "clone", url]
+  git_ dir "clone" [url]
 
 updateProject :: FilePath -> IO ()
-updateProject dir =
-  cmd_ "git" ["-C", dir, "pull"]
+updateProject dir = do
+  msg <- shortLog
+  _ <- git dir "pull" []
+  msg' <- shortLog
+  when (msg /= msg') $ putStrLn $ msg ++ " -> " ++ msg'
+  where
+    shortLog =
+      removePrefix "Checking in " . unwords . tail . words <$> system "git" ["-C", dir, "log", "--oneline", "-1"]
 
 buildplanGHC :: Snapshot -> IO ()
 buildplanGHC snap = do
   bp <- getBuildPlan snap
   let si = bpSystemInfo bp
   putStrLn $ (showVersion . siGhcVersion) si
+
+showPkgVer :: (PackageName, Version) -> String
+showPkgVer (p,v) = unPackageName p ++ " " ++ showVersion v
 
 buildplanCore :: Snapshot -> IO ()
 buildplanCore snap = do
@@ -273,5 +330,15 @@ buildplanGithub :: Snapshot -> String -> IO ()
 buildplanGithub snap pkg =
   evalPackageBuildPlan snap pkg (unwords . Set.elems . Set.map T.unpack . ppGithubPings)
 
-showPkgVer :: (PackageName, Version) -> String
-showPkgVer (p,v) = unPackageName p ++ " " ++ showVersion v
+projectToSnap :: Project -> Snapshot
+projectToSnap Nightly = LatestNightly
+projectToSnap LTS = LatestLTS
+
+buildplanLatest :: Project -> IO ()
+buildplanLatest prj = do
+  latest <- takeBaseName <$> findBuildPlanYaml (projectToSnap prj)
+  putStrLn latest
+
+buildplanUpdate :: Project -> IO ()
+buildplanUpdate project =
+  getProjectDir project >>= updateProject
