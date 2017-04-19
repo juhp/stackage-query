@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/juhp/stackage-query.png)](https://travis-ci.org/juhp/stackage-query)
+
 # Stackage-Query
 
 Small tool that queries (returns url of) package versions on Stackage.
