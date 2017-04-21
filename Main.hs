@@ -274,7 +274,7 @@ updateProject dir = do
   when (msg /= msg') $ putStrLn $ msg ++ " -> " ++ msg'
   where
     shortLog =
-      removePrefix "Checking in " . unwords . tail . words <$> system "git" ["-C", dir, "log", "--oneline", "-1"]
+      removePrefix "Checking in " . unwords . tail . words <$> git dir "log" ["--oneline", "-1"]
 
 buildplanGHC :: Snapshot -> IO ()
 buildplanGHC snap = do
