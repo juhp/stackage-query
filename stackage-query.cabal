@@ -15,7 +15,7 @@ tested-with:         GHC == 7.10.3, GHC == 8.0.2
 
 executable stackage
   main-is:             Main.hs
-  build-depends:       base,
+  build-depends:       base < 5,
                        bytestring,
                        Cabal >= 1.22,
                        containers,
