@@ -28,7 +28,7 @@ executable stackage
                        http-client,
                        http-client-tls,
                        http-conduit,
-                       optparse-applicative,
+                       optparse-applicative >= 0.13,
                        process,
                        stackage-types,
                        text,
