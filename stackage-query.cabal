@@ -4,6 +4,8 @@ synopsis:            Stackage package query
 description:         Tool to query package versions in Stackage
 license:             MIT
 license-file:        LICENSE
+homepage:            https://github.com/juhp/stackage-query
+bug-reports:         https://github.com/juhp/stackage-query/issues
 author:              Jens Petersen
 maintainer:          juhpetersen@gmail.com
 copyright:           Jens Petersen
