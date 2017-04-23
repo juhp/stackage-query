@@ -19,6 +19,7 @@ import System.Directory
 import System.Exit
 import System.FilePath
 import System.Process (rawSystem, readProcess)
+import Text.ParserCombinators.ReadP (readP_to_S)
 
 import Stackage.Types hiding (unPackageName)
 import Data.Foldable (traverse_)
@@ -54,7 +55,7 @@ instance Read Snapshot where
 removePrefix :: String -> String-> String
 removePrefix pref orig = fromMaybe orig (stripPrefix pref orig)
 
-data Project = LTS | Nightly
+data Project = LTS | Nightly deriving (Eq)
 
 instance Show Project where
   show LTS = "lts-haskell"
@@ -224,7 +225,7 @@ snapProject _ = Nightly
 
 findSnap :: Bool -> FilePath -> Snapshot -> IO FilePath
 findSnap update dir snap = do
-  fs <- sort . filter (show snap `isPrefixOf`) <$> getDirectoryContents dir
+  fs <-  sortProject . filter (show snap `isPrefixOf`) <$> getDirectoryContents dir
   if null fs
     then
     if update
@@ -233,7 +234,16 @@ findSnap update dir snap = do
       findSnap False dir snap
       else
       error $ "Snap " ++ show snap ++ " not found"
-    else return $ dir </> last fs
+    else return (dir </> last fs ++ ".yaml")
+  where
+    sortProject :: [String] -> [String]
+    sortProject =
+      if snapProject snap == Nightly
+      then sort
+      else map (("lts-" ++) . showVersion) . sort . map (readVersion . takeBaseName. removePrefix "lts-")
+
+    readVersion :: String -> Version
+    readVersion = fst . last . readP_to_S parseVersion
 
 system :: String -> [String] -> IO String
 system c args = removeTrailingNewline <$> readProcess c args ""

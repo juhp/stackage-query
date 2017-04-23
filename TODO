@@ -1,2 +1,3 @@
 - list pkg deps
-- fix sorting for latest lts
+- make http dep buildtime flag
+- use curl or wget to fetch cabal.config
