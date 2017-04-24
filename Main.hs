@@ -87,14 +87,26 @@ parseProject = argument auto $ metavar "PROJECT"
 commandParser :: Parser Command
 commandParser =
   subparser $
-  command "config" (info (Config <$> parseSnap)
-                    (progDesc "Download cabal.config file for SNAP"))
+  command "package" (info (Package <$> parseSnap <*> parseString "PKG")
+                      (progDesc "Show version of PKG in SNAP"))
+  <>
+  command "users" (info (Users <$> parseSnap <*> parseString "PKG")
+                    (progDesc "Revdeps for PKG in SNAP"))
+  <>
+  command "github" (info (Github <$> parseSnap <*> parseString "PKG")
+                     (progDesc "Stackage owners for PKG in SNAP"))
+  <>
+  command "latest" (info (Latest <$> parseProject)
+                     (progDesc "Latest snap for PROJECT (nightly or lts)"))
+  <>
+  command "update" (info (Update <$> parseProject)
+                     (progDesc "git update PROJECT (nightly or lts)"))
   <>
   command "ghc" (info (Ghc <$> parseSnap)
                   (progDesc "GHC version for SNAP"))
   <>
   command "core" (info (Core <$> parseSnap)
-                   (progDesc "Core packages for SNAP"))
+                   (progDesc "GHC core libraries for SNAP"))
   <>
   command "tools" (info (Tools <$> parseSnap)
                     (progDesc "Tools for SNAP"))
@@ -105,20 +117,8 @@ commandParser =
   command "consumers" (info (Consumers <$> consumeParser <*> parseSnap)
                        (progDesc "No of users of packages in SNAP"))
   <>
-  command "package" (info (Package <$> parseSnap <*> parseString "PKG")
-                      (progDesc "PKG info for SNAP"))
-  <>
-  command "users" (info (Users <$> parseSnap <*> parseString "PKG")
-                    (progDesc "Revdeps for PKG in SNAP"))
-  <>
-  command "github" (info (Github <$> parseSnap <*> parseString "PKG")
-                     (progDesc "Owners for PKG in SNAP"))
-  <>
-  command "latest" (info (Latest <$> parseProject)
-                     (progDesc "Latest snap for PROJECT (nightly or lts)"))
-  <>
-  command "update" (info (Update <$> parseProject)
-                     (progDesc "git update PROJECT (nightly or lts)"))
+  command "config" (info (Config <$> parseSnap)
+                    (progDesc "Download cabal.config file for SNAP"))
 
 argsParser :: Parser Args
 argsParser = Args <$> commandParser
