@@ -22,14 +22,10 @@ source-repository head
 executable stackage
   main-is:             Main.hs
   build-depends:       base < 5,
-                       bytestring,
                        Cabal >= 1.22,
                        containers,
                        directory,
                        filepath,
-                       http-client,
-                       http-client-tls,
-                       http-conduit,
                        optparse-applicative >= 0.13,
                        process,
                        stackage-types,

@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Control.Monad
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char (isDigit)
 import Data.List
 import qualified Data.Map.Strict (assocs, lookup)
@@ -11,9 +9,6 @@ import Data.Monoid
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Version
-import Network.HTTP.Client
-import Network.HTTP.Client.TLS
-import Network.HTTP.Simple
 import Options.Applicative
 import System.Directory
 import System.Exit
@@ -27,8 +22,6 @@ import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName(..), unPackageName)
 
 newtype Args = Args Command
-
-newtype UrlOption = UrlOption {showurl :: Bool}
 
 newtype ConsumerOption = ConsumerOption {threshold :: Int}
 
@@ -66,8 +59,7 @@ instance Read Project where
   readsPrec _ "nightly" = [(Nightly,"")]
   readsPrec _ _ = []
 
-data Command = List UrlOption Snapshot [String]
-             | Config UrlOption Snapshot
+data Command = Config Snapshot
              | Ghc Snapshot
              | Core Snapshot
              | Tools Snapshot
@@ -78,10 +70,6 @@ data Command = List UrlOption Snapshot [String]
              | Github Snapshot String
              | Latest Project
              | Update Project
-
-urlParser :: Parser UrlOption
-urlParser = UrlOption <$> switch
-  (long "url" <> short 'u' <> help "Show url")
 
 consumeParser :: Parser ConsumerOption
 consumeParser = ConsumerOption <$> option auto
@@ -99,10 +87,7 @@ parseProject = argument auto $ metavar "PROJECT"
 commandParser :: Parser Command
 commandParser =
   subparser $
-  command "list" (info (List <$> urlParser <*> parseSnap <*> some (parseString "PKG..."))
-                   (progDesc "Show Stackage SNAP version of PKGs"))
-  <>
-  command "config" (info (Config <$> urlParser <*> parseSnap)
+  command "config" (info (Config <$> parseSnap)
                     (progDesc "Download cabal.config file for SNAP"))
   <>
   command "ghc" (info (Ghc <$> parseSnap)
@@ -146,8 +131,7 @@ main = do
   where
     run (Args cmd) =
       case cmd of
-        List opts s ps -> stackageList opts s ps
-        Config opts s -> stackageConfig opts s
+        Config s -> stackageConfig s
         Ghc s -> buildplanGHC s
         Core s -> buildplanCore s
         Tools s -> buildplanTools s
@@ -162,35 +146,10 @@ main = do
 topurl :: String
 topurl = "https://www.stackage.org/"
 
-stackageList :: UrlOption -> Snapshot -> [String] -> IO ()
-stackageList opts s ps = do
-  mgr <- newManager tlsManagerSettings
-  mapM_ (sendReq mgr) ps
-  where
-    sendReq mgr p = do
-      let pkgurl = topurl ++ show s </> "package/"
-      req <- parseRequest $ pkgurl ++ p
-      hist <- responseOpenHistory req mgr
-      let redirs = mapMaybe (lookup "Location" . responseHeaders . snd) $ hrRedirects hist
-      if null redirs
-        then giveup $ show req
-        else do
-        let loc = B.unpack $ last redirs
-        if topurl `isPrefixOf` loc
-          then putStrLn (if showurl opts then loc else takeFileName loc)
-          else giveup p
-
-    giveup u = die $ u ++ " not found in " ++ show s
-
-
-stackageConfig :: UrlOption -> Snapshot -> IO ()
-stackageConfig opts snap = do
+stackageConfig :: Snapshot -> IO ()
+stackageConfig snap = do
   let url = topurl ++ show snap </> "cabal.config"
-  req <- parseRequest url
-  response <- httpLBS req
-  L.writeFile "cabal.config" $ getResponseBody response
-  when (showurl opts) $
-    putStrLn url
+  system_ "curl" ["-L", "-O", url]
 
 getConfigDir :: IO FilePath
 getConfigDir = do
