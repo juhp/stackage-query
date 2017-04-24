@@ -243,7 +243,10 @@ findSnap update dir snap = do
       else map (("lts-" ++) . showVersion) . sort . map (readVersion . takeBaseName. removePrefix "lts-")
 
     readVersion :: String -> Version
-    readVersion = fst . last . readP_to_S parseVersion
+    readVersion s =
+      case readP_to_S parseVersion s of
+        [(ver,"")] -> ver
+        _ -> error $ "readVersion: failed to parse " ++ s
 
 system :: String -> [String] -> IO String
 system c args = removeTrailingNewline <$> readProcess c args ""
