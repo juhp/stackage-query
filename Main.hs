@@ -193,19 +193,23 @@ findSnap update dir snap = do
       findSnap False dir snap
       else
       error $ "Snap " ++ show snap ++ " not found"
-    else return (dir </> last fs ++ ".yaml")
+    else return (dir </> last fs)
   where
     sortProject :: [String] -> [String]
     sortProject =
       if snapProject snap == Nightly
       then sort
-      else map (("lts-" ++) . showVersion) . sort . map (readVersion . takeBaseName. removePrefix "lts-")
+      else map ((\v -> "lts-" ++ v ++ ".yaml") . showVersion) . sort . map (readVersion . takeBaseName . removePrefix "lts-")
 
-    readVersion :: String -> Version
-    readVersion s =
-      case readP_to_S parseVersion s of
-        [(ver,"")] -> ver
-        _ -> error $ "readVersion: failed to parse " ++ s
+readVersion :: String -> Version
+readVersion s =
+  let vp = readP_to_S parseVersion s in
+    if null vp then giveup
+    else case last vp of
+           (ver,"") -> ver
+           _ -> giveup
+  where
+    giveup = error $ "readVersion: failed to parse " ++ s
 
 system :: String -> [String] -> IO String
 system c args = removeTrailingNewline <$> readProcess c args ""
