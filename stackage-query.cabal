@@ -6,9 +6,9 @@ license:             MIT
 license-file:        LICENSE
 homepage:            https://github.com/juhp/stackage-query
 bug-reports:         https://github.com/juhp/stackage-query/issues
-author:              Jens Petersen
-maintainer:          juhpetersen@gmail.com
-copyright:           Jens Petersen
+author:              Jens Petersen <juhpetersen@gmail.com>
+maintainer:          Jens Petersen <juhpetersen@gmail.com>
+copyright:           2017 Jens Petersen <juhpetersen@gmail.com>
 category:            Distribution
 build-type:          Simple
 extra-source-files:  ChangeLog.md
