@@ -21,6 +21,8 @@ import Data.Foldable (traverse_)
 import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName(..), unPackageName)
 
+import Paths_stackage_query (version)
+
 newtype Args = Args Command
 
 newtype ConsumerOption = ConsumerOption {threshold :: Int}
@@ -126,7 +128,7 @@ argsParser = Args <$> commandParser
 main :: IO ()
 main = do
   cmd <- customExecParser (prefs showHelpOnEmpty)
-         (info (helper <*> argsParser) $ progDesc "Stackage query tool")
+         (info (helper <*> versionOption <*> argsParser) $ progDesc "Stackage query tool")
   run cmd
   where
     run (Args cmd) =
@@ -142,6 +144,11 @@ main = do
         Github s pkg -> buildplanGithub s pkg
         Latest prj -> buildplanLatest prj
         Update prj -> buildplanUpdate prj
+
+    versionOption =
+        infoOption
+            (showVersion version)
+            (long "version" <> help "Show version")
 
 topurl :: String
 topurl = "https://www.stackage.org/"
