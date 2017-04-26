@@ -245,7 +245,7 @@ cloneProject dir proj = do
 updateProject :: FilePath -> IO ()
 updateProject dir = do
   msg <- shortLog
-  _ <- git dir "pull" []
+  _ <- git dir "pull" ["-q"]
   msg' <- shortLog
   when (msg /= msg') $ putStrLn $ msg ++ " -> " ++ msg'
   where
