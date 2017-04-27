@@ -173,14 +173,15 @@ getProjectDir project = do
   unless haveProj $ cloneProject configDir project
   return projectDir
 
-findBuildPlanYaml :: Snapshot -> IO FilePath
-findBuildPlanYaml snap = do
-  projectDir <- getProjectDir $ snapProject snap
-  findSnap True projectDir snap
+findBuildPlanYaml :: Bool -> Snapshot -> IO FilePath
+findBuildPlanYaml update snap = do
+  dir <- getProjectDir $ snapProject snap
+  when update $ updateProject False dir
+  findSnap True dir snap
 
 getBuildPlan :: Snapshot -> IO BuildPlan
 getBuildPlan snap = do
-  ebp <- findBuildPlanYaml snap >>= decodeFileEither
+  ebp <- findBuildPlanYaml False snap >>= decodeFileEither
   either (error . prettyPrintParseException) return ebp
 
 snapProject :: Snapshot -> Project
@@ -319,8 +320,8 @@ projectToSnap LTS = LatestLTS
 
 buildplanLatest :: Project -> IO ()
 buildplanLatest prj = do
-  latest <- takeBaseName <$> findBuildPlanYaml (projectToSnap prj)
-  putStrLn latest
+  latest <- findBuildPlanYaml True (projectToSnap prj)
+  putStrLn $ takeBaseName latest
 
 buildplanUpdate :: Project -> IO ()
 buildplanUpdate project =
