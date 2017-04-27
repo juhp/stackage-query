@@ -197,7 +197,7 @@ findSnap update dir snap = do
     then
     if update
       then do
-      updateProject dir
+      updateProject False dir
       findSnap False dir snap
       else
       error $ "Snap " ++ show snap ++ " not found"
@@ -250,12 +250,12 @@ cloneProject dir proj = do
   putStrLn $ "Cloning " ++ url
   git_ dir "clone" [url]
 
-updateProject :: FilePath -> IO ()
-updateProject dir = do
+updateProject :: Bool -> FilePath -> IO ()
+updateProject verbose dir = do
   msg <- shortLog
   _ <- git dir "pull" ["-q"]
   msg' <- shortLog
-  when (msg /= msg') $ putStrLn $ msg ++ " -> " ++ msg'
+  when (verbose && msg /= msg') $ putStrLn $ msg ++ " -> " ++ msg'
   where
     shortLog =
       removePrefix "Checking in " . unwords . tail . words <$> git dir "log" ["--oneline", "-1"]
@@ -325,4 +325,4 @@ buildplanLatest prj = do
 
 buildplanUpdate :: Project -> IO ()
 buildplanUpdate project =
-  getProjectDir project >>= updateProject
+  getProjectDir project >>= updateProject True
