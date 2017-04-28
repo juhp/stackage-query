@@ -70,6 +70,8 @@ data Command = Config Snapshot
              | Package Snapshot String
              | Users Snapshot String
              | Github Snapshot String
+             | Constraints Snapshot String
+             | Description Snapshot String
              | Latest Project
              | Update Project
 
@@ -97,6 +99,12 @@ commandParser =
   <>
   command "github" (info (Github <$> parseSnap <*> parseString "PKG")
                      (progDesc "Stackage owners for PKG in SNAP"))
+  <>
+  command "constraints" (info (Constraints <$> parseSnap <*> parseString "PKG")
+                         (progDesc "Stackage constraints for PKG in SNAP"))
+  <>
+  command "description" (info (Description <$> parseSnap <*> parseString "PKG")
+                         (progDesc "Details for PKG in SNAP"))
   <>
   command "latest" (info (Latest <$> parseProject)
                      (progDesc "Latest snap for PROJECT (nightly or lts)"))
@@ -142,6 +150,8 @@ main = do
         Package s pkg -> buildplanPackage s pkg
         Users s pkg -> buildplanUsers s pkg
         Github s pkg -> buildplanGithub s pkg
+        Constraints s pkg -> buildplanConstraints s pkg
+        Description s pkg -> buildplanDescription s pkg
         Latest prj -> buildplanLatest prj
         Update prj -> buildplanUpdate prj
 
@@ -326,3 +336,11 @@ buildplanLatest prj = do
 buildplanUpdate :: Project -> IO ()
 buildplanUpdate project =
   getProjectDir project >>= updateProject True
+
+buildplanConstraints :: Snapshot -> String -> IO ()
+buildplanConstraints snap pkg =
+  evalPackageBuildPlan snap pkg (show . ppConstraints)
+
+buildplanDescription :: Snapshot -> String -> IO ()
+buildplanDescription snap pkg =
+  evalPackageBuildPlan snap pkg (show . ppDesc)
