@@ -1,3 +1,1 @@
 - list pkg deps
-- make http dep buildtime flag
-- use curl or wget to fetch cabal.config

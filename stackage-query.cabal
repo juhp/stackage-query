@@ -1,5 +1,5 @@
 name:                stackage-query
-version:             0.1.0
+version:             0.1.1
 synopsis:            Stackage package query
 description:         Tool to query package versions in Stackage
 license:             MIT
