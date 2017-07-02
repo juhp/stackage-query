@@ -3,7 +3,7 @@
 import Control.Monad
 import Data.Char (isDigit)
 import Data.List
-import qualified Data.Map.Strict (assocs, lookup)
+import qualified Data.Map.Strict (assocs, keys, lookup)
 import Data.Maybe
 import Data.Monoid
 import qualified Data.Set as Set
@@ -61,17 +61,21 @@ instance Read Project where
   readsPrec _ "nightly" = [(Nightly,"")]
   readsPrec _ _ = []
 
+type Pkg = String
+
 data Command = Config Snapshot
              | Ghc Snapshot
              | Core Snapshot
-             | Tools Snapshot
+             | Tools Snapshot (Maybe Pkg)
              | Packages Snapshot
              | Consumers ConsumerOption Snapshot
-             | Package Snapshot String
-             | Users Snapshot String
-             | Github Snapshot String
-             | Constraints Snapshot String
-             | Description Snapshot String
+             | Package Snapshot Pkg
+             | Users Snapshot Pkg
+             | Github Snapshot Pkg
+             | Constraints Snapshot Pkg
+             | Dependencies Snapshot Pkg
+             | Executables Snapshot Pkg
+             | Modules Snapshot Pkg
              | Latest Project
              | Update Project
 
@@ -79,8 +83,8 @@ consumeParser :: Parser ConsumerOption
 consumeParser = ConsumerOption <$> option auto
   (long "minimum" <> short 'm' <> metavar "THRESHOLD" <> value 5 <> help "Show packages with at least THRESHOLD consumers (default 5)")
 
-parseString :: String -> Parser String
-parseString lbl = strArgument $ metavar lbl
+parsePkg :: Pkg -> Parser Pkg
+parsePkg lbl = strArgument $ metavar lbl
 
 parseSnap :: Parser Snapshot
 parseSnap = argument auto $ metavar "SNAP"
@@ -91,20 +95,26 @@ parseProject = argument auto $ metavar "PROJECT"
 commandParser :: Parser Command
 commandParser =
   subparser $
-  command "package" (info (Package <$> parseSnap <*> parseString "PKG")
+  command "package" (info (Package <$> parseSnap <*> parsePkg "PKG")
                       (progDesc "Show version of PKG in SNAP"))
   <>
-  command "users" (info (Users <$> parseSnap <*> parseString "PKG")
+  command "users" (info (Users <$> parseSnap <*> (parsePkg "PKG"))
                     (progDesc "Revdeps for PKG in SNAP"))
   <>
-  command "github" (info (Github <$> parseSnap <*> parseString "PKG")
+  command "github" (info (Github <$> parseSnap <*> parsePkg "PKG")
                      (progDesc "Stackage owners for PKG in SNAP"))
   <>
-  command "constraints" (info (Constraints <$> parseSnap <*> parseString "PKG")
+  command "constraints" (info (Constraints <$> parseSnap <*> parsePkg "PKG")
                          (progDesc "Stackage constraints for PKG in SNAP"))
   <>
-  command "description" (info (Description <$> parseSnap <*> parseString "PKG")
-                         (progDesc "Details for PKG in SNAP"))
+  command "dependencies" (info (Dependencies <$> parseSnap <*> parsePkg "PKG")
+                          (progDesc "Dependencies for PKG in SNAP"))
+  <>
+  command "executables" (info (Executables <$> parseSnap <*> parsePkg "PKG")
+                          (progDesc "Executables of PKG in SNAP"))
+  <>
+  command "modules" (info (Modules <$> parseSnap <*> parsePkg "PKG")
+                          (progDesc "Modules of PKG in SNAP"))
   <>
   command "latest" (info (Latest <$> parseProject)
                      (progDesc "Latest snap for PROJECT (nightly or lts)"))
@@ -118,7 +128,7 @@ commandParser =
   command "core" (info (Core <$> parseSnap)
                    (progDesc "GHC core libraries for SNAP"))
   <>
-  command "tools" (info (Tools <$> parseSnap)
+  command "tools" (info (Tools <$> parseSnap <*> optional (parsePkg "PKG"))
                     (progDesc "Tools for SNAP"))
   <>
   command "packages" (info (Packages <$> parseSnap)
@@ -144,14 +154,16 @@ main = do
         Config s -> stackageConfig s
         Ghc s -> buildplanGHC s
         Core s -> buildplanCore s
-        Tools s -> buildplanTools s
+        Tools s mpkg -> buildplanTools s mpkg
         Packages s -> buildplanPackages s
         Consumers opts s -> buildplanConsumers opts s
         Package s pkg -> buildplanPackage s pkg
-        Users s pkg -> buildplanUsers s pkg
+        Users s pkgs -> buildplanUsers s pkgs
         Github s pkg -> buildplanGithub s pkg
         Constraints s pkg -> buildplanConstraints s pkg
-        Description s pkg -> buildplanDescription s pkg
+        Dependencies s pkg -> buildplanDependencies s pkg
+        Executables s pkg -> buildplanExecutables s pkg
+        Modules s pkg -> buildplanModules s pkg
         Latest prj -> buildplanLatest prj
         Update prj -> buildplanUpdate prj
 
@@ -285,10 +297,10 @@ buildplanCore snap = do
   let si = bpSystemInfo bp
   traverse_ (putStrLn . showPkgVer) $ (Data.Map.Strict.assocs . siCorePackages) si
 
-buildplanTools :: Snapshot -> IO ()
-buildplanTools snap = do
+buildplanTools :: Snapshot -> Maybe Pkg -> IO ()
+buildplanTools snap mpkg = do
   bp <- getBuildPlan snap
-  traverse_ (putStrLn . showPkgVer) $ bpTools bp
+  maybe (traverse_ (putStrLn . showPkgVer) $ bpTools bp) (buildplanPkgTools snap) mpkg
 
 buildplanPackages :: Snapshot -> IO ()
 buildplanPackages snap = do
@@ -306,21 +318,21 @@ buildplanConsumers opts snap = do
       when (n >= threshold opts) $
         putStrLn $ show n ++ " " ++ unPackageName p
 
-evalPackageBuildPlan :: Snapshot -> String -> (PackagePlan -> String) -> IO ()
+evalPackageBuildPlan :: Snapshot -> Pkg -> (PackagePlan -> String) -> IO ()
 evalPackageBuildPlan snap pkg expr = do
   bp <- getBuildPlan snap
   let mpkgplan = Data.Map.Strict.lookup (PackageName pkg) $ bpPackages bp
   putStrLn $ maybe "Package not found" expr mpkgplan
 
-buildplanPackage :: Snapshot -> String -> IO ()
+buildplanPackage :: Snapshot -> Pkg -> IO ()
 buildplanPackage snap pkg =
   evalPackageBuildPlan snap pkg (showVersion . ppVersion)
 
-buildplanUsers :: Snapshot -> String -> IO ()
+buildplanUsers :: Snapshot -> Pkg -> IO ()
 buildplanUsers snap pkg =
   evalPackageBuildPlan snap pkg (unwords . Set.elems . Set.map unPackageName . ppUsers)
 
-buildplanGithub :: Snapshot -> String -> IO ()
+buildplanGithub :: Snapshot -> Pkg -> IO ()
 buildplanGithub snap pkg =
   evalPackageBuildPlan snap pkg (unwords . Set.elems . Set.map T.unpack . ppGithubPings)
 
@@ -337,10 +349,23 @@ buildplanUpdate :: Project -> IO ()
 buildplanUpdate project =
   getProjectDir project >>= updateProject True
 
-buildplanConstraints :: Snapshot -> String -> IO ()
+buildplanConstraints :: Snapshot -> Pkg -> IO ()
 buildplanConstraints snap pkg =
   evalPackageBuildPlan snap pkg (show . ppConstraints)
 
-buildplanDescription :: Snapshot -> String -> IO ()
-buildplanDescription snap pkg =
-  evalPackageBuildPlan snap pkg (show . ppDesc)
+buildplanDependencies :: Snapshot -> Pkg -> IO ()
+buildplanDependencies snap pkg =
+  evalPackageBuildPlan snap pkg (unlines . map unPackageName . Data.Map.Strict.keys . sdPackages . ppDesc)
+
+buildplanExecutables :: Snapshot -> Pkg -> IO ()
+buildplanExecutables snap pkg =
+  evalPackageBuildPlan snap pkg (unlines . map (T.unpack . unExeName) . Set.toList. sdProvidedExes . ppDesc)
+
+buildplanPkgTools :: Snapshot -> Pkg -> IO ()
+buildplanPkgTools snap pkg =
+  evalPackageBuildPlan snap pkg (unlines . map (T.unpack . unExeName) . Data.Map.Strict.keys . sdTools . ppDesc)
+
+buildplanModules :: Snapshot -> Pkg -> IO ()
+buildplanModules snap pkg =
+  evalPackageBuildPlan snap pkg (unlines . map T.unpack . Set.toList. sdModules . ppDesc)
+
