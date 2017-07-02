@@ -20,6 +20,7 @@ import Stackage.Types hiding (unPackageName)
 import Data.Foldable (traverse_)
 import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName(..), unPackageName)
+import Distribution.Text (disp)
 
 import Paths_stackage_query (version)
 
@@ -351,7 +352,7 @@ buildplanUpdate project =
 
 buildplanConstraints :: Snapshot -> Pkg -> IO ()
 buildplanConstraints snap pkg =
-  evalPackageBuildPlan snap pkg (show . ppConstraints)
+  evalPackageBuildPlan snap pkg (show . disp . pcVersionRange . ppConstraints)
 
 buildplanDependencies :: Snapshot -> Pkg -> IO ()
 buildplanDependencies snap pkg =
