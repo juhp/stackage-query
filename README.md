@@ -1,4 +1,7 @@
 [![Build Status](https://travis-ci.org/juhp/stackage-query.png)](https://travis-ci.org/juhp/stackage-query)
+[![Hackage](http://img.shields.io/hackage/v/stackage-query.png)](http://hackage.haskell.org/package/stackage-query)
+[![Stackage LTS](http://stackage.org/package/stackage-query/badge/lts)](http://stackage.org/lts/package/stackage-query)
+[![Stackage Nightly](http://stackage.org/package/stackage-query/badge/nightly)](http://stackage.org/nightly/package/stackage-query)
 
 # Stackage-Query
 
