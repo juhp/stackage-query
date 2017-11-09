@@ -191,15 +191,15 @@ getProjectDir project = do
   unless haveProj $ cloneProject configDir project
   return projectDir
 
-findBuildPlanYaml :: Bool -> Snapshot -> IO FilePath
-findBuildPlanYaml update snap = do
+findBuildPlanYaml :: Snapshot -> IO FilePath
+findBuildPlanYaml snap = do
   dir <- getProjectDir $ snapProject snap
-  when update $ updateProject False dir
-  findSnap True dir snap
+  updateProject False dir
+  findSnap dir snap
 
 getBuildPlan :: Snapshot -> IO BuildPlan
 getBuildPlan snap = do
-  ebp <- findBuildPlanYaml False snap >>= decodeFileEither
+  ebp <- findBuildPlanYaml snap >>= decodeFileEither
   either (error . prettyPrintParseException) return ebp
 
 snapProject :: Snapshot -> Project
@@ -208,17 +208,11 @@ snapProject (LtsSnap _) = LTS
 snapProject (LtsMajor _) = LTS
 snapProject _ = Nightly
 
-findSnap :: Bool -> FilePath -> Snapshot -> IO FilePath
-findSnap update dir snap = do
+findSnap :: FilePath -> Snapshot -> IO FilePath
+findSnap dir snap = do
   fs <-  sortProject . filter (show snap `isPrefixOf`) <$> getDirectoryContents dir
   if null fs
-    then
-    if update
-      then do
-      updateProject False dir
-      findSnap False dir snap
-      else
-      error $ "Snap " ++ show snap ++ " not found"
+    then error $ "Snap " ++ show snap ++ " not found"
     else return (dir </> last fs)
   where
     sortProject :: [String] -> [String]
@@ -338,7 +332,7 @@ projectToSnap LTS = LatestLTS
 
 buildplanLatest :: Project -> IO ()
 buildplanLatest prj = do
-  latest <- findBuildPlanYaml True (projectToSnap prj)
+  latest <- findBuildPlanYaml (projectToSnap prj)
   putStrLn $ takeBaseName latest
 
 buildplanConstraints :: Snapshot -> Pkg -> IO ()
