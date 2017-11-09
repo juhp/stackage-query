@@ -312,7 +312,7 @@ evalPackageBuildPlan :: Snapshot -> Pkg -> (PackagePlan -> String) -> IO ()
 evalPackageBuildPlan snap pkg expr = do
   bp <- getBuildPlan snap
   let mpkgplan = Data.Map.Strict.lookup (PackageName pkg) $ bpPackages bp
-  putStrLn $ maybe "Package not found" expr mpkgplan
+  putStrLn $ maybe (error "Package not found") expr mpkgplan
 
 buildplanPackage :: Snapshot -> Pkg -> IO ()
 buildplanPackage snap pkg =
