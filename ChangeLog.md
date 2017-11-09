@@ -1,5 +1,10 @@
 # Revision history for stackage-query
 
+## 0.1.2  -- 2017-09-11
+* drop update command
+* always update to latest Stackage data from git
+* error if no package found
+
 ## 0.1.1  -- 2017-07-02
 
 * new commands for `constraints`, `dependencies`, `executables`, and `modules`
@@ -13,3 +18,7 @@
 
 * initial release on Hackage with commands to query package versions,
   reverse deps, Stackage owners, latest snapshots, and no of consumers.
+
+# Local Variables:
+# mode: text
+# End:
