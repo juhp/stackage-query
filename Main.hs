@@ -78,7 +78,6 @@ data Command = Config Snapshot
              | Executables Snapshot Pkg
              | Modules Snapshot Pkg
              | Latest Project
-             | Update Project
 
 consumeParser :: Parser ConsumerOption
 consumeParser = ConsumerOption <$> option auto
@@ -119,9 +118,6 @@ commandParser =
   <>
   command "latest" (info (Latest <$> parseProject)
                      (progDesc "Latest snap for PROJECT (nightly or lts)"))
-  <>
-  command "update" (info (Update <$> parseProject)
-                     (progDesc "git update PROJECT (nightly or lts)"))
   <>
   command "ghc" (info (Ghc <$> parseSnap)
                   (progDesc "GHC version for SNAP"))
@@ -166,7 +162,6 @@ main = do
         Executables s pkg -> buildplanExecutables s pkg
         Modules s pkg -> buildplanModules s pkg
         Latest prj -> buildplanLatest prj
-        Update prj -> buildplanUpdate prj
 
     versionOption =
         infoOption
@@ -345,10 +340,6 @@ buildplanLatest :: Project -> IO ()
 buildplanLatest prj = do
   latest <- findBuildPlanYaml True (projectToSnap prj)
   putStrLn $ takeBaseName latest
-
-buildplanUpdate :: Project -> IO ()
-buildplanUpdate project =
-  getProjectDir project >>= updateProject True
 
 buildplanConstraints :: Snapshot -> Pkg -> IO ()
 buildplanConstraints snap pkg =
