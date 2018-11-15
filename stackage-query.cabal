@@ -11,9 +11,10 @@ maintainer:          Jens Petersen <juhpetersen@gmail.com>
 copyright:           2017 Jens Petersen <juhpetersen@gmail.com>
 category:            Distribution
 build-type:          Simple
-extra-source-files:  ChangeLog.md
+extra-source-files:  ChangeLog.md, README.md
 cabal-version:       >=1.10
-tested-with:         GHC == 7.10.3, GHC == 8.0.2
+tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4,
+                     GHC == 8.6.2
 
 source-repository head
   type:     git
