@@ -1,5 +1,9 @@
 # Revision history for stackage-query
 
+## 0.1.3  -- 2018-11-15
+- bundle Stackage.Types from old stackage-types package
+- updates to build with Cabal-2 etc
+
 ## 0.1.2  -- 2017-09-11
 * drop update command
 * always update to latest Stackage data from git
