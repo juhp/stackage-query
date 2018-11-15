@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE CPP                        #-}
 -- | Shared types for various stackage packages.
 module Stackage.Types
     ( -- * Types
@@ -41,7 +42,6 @@ import qualified Data.HashMap.Strict             as HashMap
 import           Data.Map                        (Map)
 import qualified Data.Map                        as Map
 import           Data.Maybe                      (fromMaybe)
-import           Data.Monoid                     (Monoid, mappend, mempty)
 import           Data.Semigroup                  (Semigroup, (<>))
 import           Data.Set                        (Set)
 import qualified Data.Set                        as Set
@@ -52,11 +52,16 @@ import qualified Data.Traversable                as T
 import           Data.Typeable                   (TypeRep, Typeable, typeOf)
 import           Data.Vector                     (Vector)
 import           Data.Version
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(2,0,0)
 import           Distribution.Package            (PackageName)
 import           Distribution.PackageDescription (FlagName, mkFlagName, unFlagName)
+import           Distribution.Types.PackageName  (mkPackageName, unPackageName)
+#else
+import           Distribution.Package            (PackageName (PackageName))
+import           Distribution.PackageDescription (FlagName (..))
+#endif
 import           Distribution.System             (Arch, OS)
 import qualified Distribution.Text               as DT
-import           Distribution.Types.PackageName  (mkPackageName, unPackageName)
 import           Distribution.Version            (VersionRange)
 import qualified Distribution.Version            as C
 import Safe (readMay)
@@ -204,6 +209,15 @@ data ParseFailedException = ParseFailedException TypeRep Text
     deriving (Show, Typeable)
 instance Exception ParseFailedException
 
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(2,0,0)
+#else
+unPackageName :: PackageName -> String
+unPackageName (PackageName str) = str
+
+mkPackageName :: String -> PackageName
+mkPackageName = PackageName
+#endif
+
 data PackageConstraints = PackageConstraints
     { pcVersionRange     :: VersionRange
     , pcMaintainer       :: Maybe Maintainer
@@ -294,6 +308,15 @@ instance FromJSON SystemInfo where
                    . T.mapM simpleParse
                    . Map.mapKeysWith const mkPackageName
 
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(2,0,0)
+#else
+unFlagName :: FlagName -> Text
+unFlagName (FlagName str) = pack str
+
+mkFlagName :: Text -> FlagName
+mkFlagName = FlagName . unpack
+#endif
+
 newtype Maintainer = Maintainer { unMaintainer :: Text }
     deriving (Show, Eq, Ord, Hashable, ToJSON, FromJSON, IsString)
 
@@ -318,13 +341,22 @@ data SimpleDesc = SimpleDesc
     -- ^ modules exported by the library
     }
     deriving (Show, Eq)
+instance Semigroup SimpleDesc where
+    (SimpleDesc a b c d) <> (SimpleDesc w x y z) = SimpleDesc
+        (Map.unionWith (<>) a w)
+        (Map.unionWith (<>) b x)
+        (c <> y)
+        (d <> z)
 instance Monoid SimpleDesc where
     mempty = SimpleDesc mempty mempty mempty mempty
+#if (defined(MIN_VERSION_base) && MIN_VERSION_base(4,11,1))
+#else
     mappend (SimpleDesc a b c d) (SimpleDesc w x y z) = SimpleDesc
         (Map.unionWith (<>) a w)
         (Map.unionWith (<>) b x)
         (c <> y)
         (d <> z)
+#endif
 instance ToJSON SimpleDesc where
     toJSON SimpleDesc {..} = object
         [ "packages" .= Map.mapKeysWith const unPackageName sdPackages
