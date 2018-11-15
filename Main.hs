@@ -19,7 +19,7 @@ import Text.ParserCombinators.ReadP (readP_to_S)
 import Stackage.Types hiding (unPackageName)
 import Data.Foldable (traverse_)
 import Data.Yaml hiding (Parser)
-import Distribution.Package (PackageName(..), unPackageName)
+import Distribution.Package (PackageName, unPackageName)
 import Distribution.Text (disp)
 
 import Paths_stackage_query (version)
@@ -98,7 +98,7 @@ commandParser =
   command "package" (info (Package <$> parseSnap <*> parsePkg "PKG")
                       (progDesc "Show version of PKG in SNAP"))
   <>
-  command "users" (info (Users <$> parseSnap <*> (parsePkg "PKG"))
+  command "users" (info (Users <$> parseSnap <*> parsePkg "PKG")
                     (progDesc "Revdeps for PKG in SNAP"))
   <>
   command "github" (info (Github <$> parseSnap <*> parsePkg "PKG")
@@ -311,7 +311,7 @@ buildplanConsumers opts snap = do
 evalPackageBuildPlan :: Snapshot -> Pkg -> (PackagePlan -> String) -> IO ()
 evalPackageBuildPlan snap pkg expr = do
   bp <- getBuildPlan snap
-  let mpkgplan = Data.Map.Strict.lookup (PackageName pkg) $ bpPackages bp
+  let mpkgplan = Data.Map.Strict.lookup (mkPackageName pkg) $ bpPackages bp
   putStrLn $ maybe (error "Package not found") expr mpkgplan
 
 buildplanPackage :: Snapshot -> Pkg -> IO ()

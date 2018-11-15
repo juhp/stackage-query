@@ -23,13 +23,22 @@ executable stackage
   main-is:             Main.hs
   build-depends:       base  >= 4.7 && < 5,
                        Cabal >= 1.22,
+                       aeson,
                        containers,
                        directory,
+                       exceptions >= 0.6,
+                       hashable,
                        filepath,
                        optparse-applicative >= 0.13,
                        process,
-                       stackage-types,
+                       safe,
+                       semigroups,
                        text,
+                       time,
+                       unordered-containers,
+                       vector,
                        yaml
+  other-modules:       Stackage.Types,
+                       Paths_stackage_query
   GHC-options:        -fwarn-missing-signatures -Wall
   default-language:    Haskell2010

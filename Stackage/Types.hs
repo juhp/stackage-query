@@ -47,16 +47,17 @@ import           Data.Set                        (Set)
 import qualified Data.Set                        as Set
 import           Data.String                     (IsString, fromString)
 import           Data.Text                       (Text, pack, unpack)
-import qualified Data.Text                       as T
 import           Data.Time                       (Day)
 import qualified Data.Traversable                as T
 import           Data.Typeable                   (TypeRep, Typeable, typeOf)
 import           Data.Vector                     (Vector)
-import           Distribution.Package            (PackageName (PackageName))
-import           Distribution.PackageDescription (FlagName (..))
+import           Data.Version
+import           Distribution.Package            (PackageName)
+import           Distribution.PackageDescription (FlagName, mkFlagName, unFlagName)
 import           Distribution.System             (Arch, OS)
 import qualified Distribution.Text               as DT
-import           Distribution.Version            (Version, VersionRange)
+import           Distribution.Types.PackageName  (mkPackageName, unPackageName)
+import           Distribution.Version            (VersionRange)
 import qualified Distribution.Version            as C
 import Safe (readMay)
 
@@ -174,7 +175,7 @@ instance FromJSON PackagePlan where
                  >>= either (fail . show) return
                    . simpleParse . asText
         ppGithubPings <- o .:? "github-pings" .!= mempty
-        ppUsers <- Set.map PackageName <$> (o .:? "users" .!= mempty)
+        ppUsers <- Set.map mkPackageName <$> (o .:? "users" .!= mempty)
         ppConstraints <- o .: "constraints"
         ppDesc <- o .: "description"
         return PackagePlan {..}
@@ -202,12 +203,6 @@ simpleParse orig = withTypeRep $ \rep ->
 data ParseFailedException = ParseFailedException TypeRep Text
     deriving (Show, Typeable)
 instance Exception ParseFailedException
-
-unPackageName :: PackageName -> Text
-unPackageName (PackageName str) = pack str
-
-mkPackageName :: Text -> PackageName
-mkPackageName = PackageName . unpack
 
 data PackageConstraints = PackageConstraints
     { pcVersionRange     :: VersionRange
@@ -250,13 +245,13 @@ instance FromJSON PackageConstraints where
 
 data TestState = ExpectSuccess
                | ExpectFailure
-               | Don'tBuild -- ^ when the test suite will pull in things we don't want
+               | DontBuild -- ^ when the test suite will pull in things we don't want
     deriving (Show, Eq, Ord, Bounded, Enum)
 
 testStateToText :: TestState -> Text
 testStateToText ExpectSuccess = "expect-success"
 testStateToText ExpectFailure = "expect-failure"
-testStateToText Don'tBuild    = "do-not-build"
+testStateToText DontBuild    = "do-not-build"
 
 instance ToJSON TestState where
     toJSON = toJSON . testStateToText
@@ -298,12 +293,6 @@ instance FromJSON SystemInfo where
         goPackages = either (fail . show) return
                    . T.mapM simpleParse
                    . Map.mapKeysWith const mkPackageName
-
-unFlagName :: FlagName -> Text
-unFlagName (FlagName str) = pack str
-
-mkFlagName :: Text -> FlagName
-mkFlagName = FlagName . unpack
 
 newtype Maintainer = Maintainer { unMaintainer :: Text }
     deriving (Show, Eq, Ord, Hashable, ToJSON, FromJSON, IsString)
