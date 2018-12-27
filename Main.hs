@@ -8,7 +8,7 @@ import qualified Data.Map.Strict (assocs, keys, lookup)
 import Data.Maybe
 #if (defined(MIN_VERSION_base) && MIN_VERSION_base(4,11,1))
 #else
-import Data.Monoid
+import Data.Monoid ((<>))
 #endif
 import qualified Data.Set as Set
 import qualified Data.Text as T
