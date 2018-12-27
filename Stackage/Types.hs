@@ -42,6 +42,10 @@ import qualified Data.HashMap.Strict             as HashMap
 import           Data.Map                        (Map)
 import qualified Data.Map                        as Map
 import           Data.Maybe                      (fromMaybe)
+#if (defined(MIN_VERSION_base) && MIN_VERSION_base(4,8,0))
+#else
+import           Data.Monoid (Monoid)
+#endif
 import           Data.Semigroup                  (Semigroup, (<>))
 import           Data.Set                        (Set)
 import qualified Data.Set                        as Set
