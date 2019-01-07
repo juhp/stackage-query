@@ -26,9 +26,9 @@ import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName, unPackageName)
 import Distribution.Text (disp)
 
-import Paths_stackage_query (version)
+import SimpleCmdArgs
 
-newtype Args = Args Command
+import Paths_stackage_query (version)
 
 newtype ConsumerOption = ConsumerOption {threshold :: Int}
 
@@ -68,27 +68,12 @@ instance Read Project where
 
 type Pkg = String
 
-data Command = Config Snapshot
-             | Ghc Snapshot
-             | Core Snapshot
-             | Tools Snapshot (Maybe Pkg)
-             | Packages Snapshot
-             | Consumers ConsumerOption Snapshot
-             | Package Snapshot Pkg
-             | Users Snapshot Pkg
-             | Github Snapshot Pkg
-             | Constraints Snapshot Pkg
-             | Dependencies Snapshot Pkg
-             | Executables Snapshot Pkg
-             | Modules Snapshot Pkg
-             | Latest Project
-
 consumeParser :: Parser ConsumerOption
 consumeParser = ConsumerOption <$> option auto
   (long "minimum" <> short 'm' <> metavar "THRESHOLD" <> value 5 <> help "Show packages with at least THRESHOLD consumers (default 5)")
 
-parsePkg :: Pkg -> Parser Pkg
-parsePkg lbl = strArgument $ metavar lbl
+parsePkg :: Parser Pkg
+parsePkg = strArg "PKG"
 
 parseSnap :: Parser Snapshot
 parseSnap = argument auto $ metavar "SNAP"
@@ -96,81 +81,39 @@ parseSnap = argument auto $ metavar "SNAP"
 parseProject :: Parser Project
 parseProject = argument auto $ metavar "PROJECT"
 
-commandParser :: Parser Command
-commandParser =
-  subparser $
-  command "package" (info (Package <$> parseSnap <*> parsePkg "PKG")
-                      (progDesc "Show version of PKG in SNAP"))
-  <>
-  command "users" (info (Users <$> parseSnap <*> parsePkg "PKG")
-                    (progDesc "Revdeps for PKG in SNAP"))
-  <>
-  command "github" (info (Github <$> parseSnap <*> parsePkg "PKG")
-                     (progDesc "Stackage owners for PKG in SNAP"))
-  <>
-  command "constraints" (info (Constraints <$> parseSnap <*> parsePkg "PKG")
-                         (progDesc "Stackage constraints for PKG in SNAP"))
-  <>
-  command "dependencies" (info (Dependencies <$> parseSnap <*> parsePkg "PKG")
-                          (progDesc "Dependencies for PKG in SNAP"))
-  <>
-  command "executables" (info (Executables <$> parseSnap <*> parsePkg "PKG")
-                          (progDesc "Executables of PKG in SNAP"))
-  <>
-  command "modules" (info (Modules <$> parseSnap <*> parsePkg "PKG")
-                          (progDesc "Modules of PKG in SNAP"))
-  <>
-  command "latest" (info (Latest <$> parseProject)
-                     (progDesc "Latest snap for PROJECT (nightly or lts)"))
-  <>
-  command "ghc" (info (Ghc <$> parseSnap)
-                  (progDesc "GHC version for SNAP"))
-  <>
-  command "core" (info (Core <$> parseSnap)
-                   (progDesc "GHC core libraries for SNAP"))
-  <>
-  command "tools" (info (Tools <$> parseSnap <*> optional (parsePkg "PKG"))
-                    (progDesc "Tools for SNAP"))
-  <>
-  command "packages" (info (Packages <$> parseSnap)
-                       (progDesc "All packages in SNAP"))
-  <>
-  command "consumers" (info (Consumers <$> consumeParser <*> parseSnap)
-                       (progDesc "No of users of packages in SNAP"))
-  <>
-  command "config" (info (Config <$> parseSnap)
-                    (progDesc "Download cabal.config file for SNAP"))
-
-argsParser :: Parser Args
-argsParser = Args <$> commandParser
-
 main :: IO ()
-main = do
-  cmd <- customExecParser (prefs showHelpOnEmpty)
-         (info (helper <*> versionOption <*> argsParser) $ progDesc "Stackage query tool")
-  run cmd
-  where
-    run (Args cmd) =
-      case cmd of
-        Config s -> stackageConfig s
-        Ghc s -> buildplanGHC s
-        Core s -> buildplanCore s
-        Tools s mpkg -> buildplanTools s mpkg
-        Packages s -> buildplanPackages s
-        Consumers opts s -> buildplanConsumers opts s
-        Package s pkg -> buildplanPackage s pkg
-        Users s pkgs -> buildplanUsers s pkgs
-        Github s pkg -> buildplanGithub s pkg
-        Constraints s pkg -> buildplanConstraints s pkg
-        Dependencies s pkg -> buildplanDependencies s pkg
-        Executables s pkg -> buildplanExecutables s pkg
-        Modules s pkg -> buildplanModules s pkg
-        Latest prj -> buildplanLatest prj
-
-    versionOption =
-        infoOption
-            (showVersion version)
-            (long "version" <> help "Show version")
+main =
+  simpleCmdArgs (Just version) "Stackage query tool" "" $
+  subcommands
+    [ Subcommand "package" (buildplanPackage <$> parseSnap <*> parsePkg)
+      "Show version of PKG in SNAP"
+    , Subcommand "users" (buildplanUsers <$> parseSnap <*> parsePkg)
+      "Revdeps for PKG in SNAP"
+    , Subcommand "github" (buildplanGithub <$> parseSnap <*> parsePkg)
+      "Stackage owners for PKG in SNAP"
+    , Subcommand "constraints" (buildplanConstraints <$> parseSnap <*> parsePkg)
+      "Stackage constraints for PKG in SNAP"
+    , Subcommand "dependencies" (buildplanDependencies <$> parseSnap <*> parsePkg)
+      "Dependencies for PKG in SNAP"
+    , Subcommand "executables" (buildplanExecutables <$> parseSnap <*> parsePkg)
+      "Executables of PKG in SNAP"
+    , Subcommand "modules" (buildplanModules <$> parseSnap <*> parsePkg)
+      "Modules of PKG in SNAP"
+    , Subcommand "latest" (buildplanLatest <$> parseProject)
+      "Latest snap for PROJECT (nightly or lts)"
+    , Subcommand "ghc" (buildplanGHC <$> parseSnap)
+      "GHC version for SNAP"
+    , Subcommand "core" (buildplanCore <$> parseSnap)
+      "GHC core libraries for SNAP"
+    , Subcommand "tools" (buildplanTools <$> parseSnap <*> optional parsePkg)
+      "Tools for SNAP"
+    , Subcommand "packages" (buildplanPackages <$> parseSnap)
+      "All packages in SNAP"
+    , Subcommand "consumers" (buildplanConsumers <$> consumeParser <*> parseSnap)
+      "No of users of packages in SNAP"
+    , Subcommand "config" (stackageConfig <$> parseSnap)
+      "Download cabal.config file for SNAP"
+    ]
 
 topurl :: String
 topurl = "https://www.stackage.org/"
