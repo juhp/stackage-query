@@ -15,9 +15,7 @@ import qualified Data.Text as T
 import Data.Version
 import Options.Applicative
 import System.Directory
-import System.Exit
 import System.FilePath
-import System.Process (rawSystem, readProcess)
 import Text.ParserCombinators.ReadP (readP_to_S)
 
 import Stackage.Types hiding (unPackageName)
@@ -26,6 +24,7 @@ import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName, unPackageName)
 import Distribution.Text (disp)
 
+import SimpleCmd (cmd, cmd_)
 import SimpleCmdArgs
 
 import Paths_stackage_query (version)
@@ -119,7 +118,7 @@ topurl = "https://www.stackage.org/"
 stackageConfig :: Snapshot -> IO ()
 stackageConfig snap = do
   let url = topurl ++ show snap </> "cabal.config"
-  system_ "curl" ["-L", "-O", url]
+  cmd_ "curl" ["-L", "-O", url]
 
 getConfigDir :: IO FilePath
 getConfigDir = do
@@ -176,30 +175,13 @@ readVersion s =
   where
     giveup = error $ "readVersion: failed to parse " ++ s
 
-system :: String -> [String] -> IO String
-system c args = removeTrailingNewline <$> readProcess c args ""
-  where
-    removeTrailingNewline :: String -> String
-    removeTrailingNewline "" = ""
-    removeTrailingNewline cs =
-      if last cs == '\n'
-      then init cs
-      else cs
-
-system_ :: String -> [String] -> IO ()
-system_ c args = do
-  ret <- rawSystem c args
-  case ret of
-    ExitSuccess -> return ()
-    ExitFailure n -> error $ "\"" ++ unwords (c:args) ++ "\" failed with exit code " ++ show n
-
 git :: FilePath -> String -> [String] -> IO String
-git dir cmd args =
-  system "git" $ ["-C", dir] ++ cmd:args
+git dir c args =
+  cmd "git" $ ["-C", dir] ++ c:args
 
 git_ :: FilePath -> String -> [String] -> IO ()
-git_ dir cmd args =
-  system_ "git" $ ["-C", dir] ++ cmd:args
+git_ dir c args =
+  cmd_ "git" $ ["-C", dir] ++ c:args
 
 cloneProject :: FilePath -> Project -> IO ()
 cloneProject dir proj = do
