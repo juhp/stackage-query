@@ -30,8 +30,6 @@ import SimpleCmdArgs
 
 import Paths_stackage_query (version)
 
-newtype ConsumerOption = ConsumerOption {threshold :: Int}
-
 data Snapshot = LatestNightly | LatestLTS | NightlySnap String | LtsSnap String | LtsMajor String
 
 instance Show Snapshot where
@@ -68,9 +66,9 @@ instance Read Project where
 
 type Pkg = String
 
-consumeParser :: Parser ConsumerOption
-consumeParser = ConsumerOption <$> option auto
-  (long "minimum" <> short 'm' <> metavar "THRESHOLD" <> value 5 <> help "Show packages with at least THRESHOLD consumers (default 5)")
+consumeParser :: Parser Int
+consumeParser = option auto
+  (optionMods ('m', "minimum", "THRESHOLD", "Show packages with at least THRESHOLD consumers (default 5)") <> value 5)
 
 parsePkg :: Parser Pkg
 parsePkg = strArg "PKG"
@@ -244,15 +242,15 @@ buildplanPackages snap = do
   bp <- getBuildPlan snap
   traverse_ (putStrLn . showPkgVer) $ Data.Map.Strict.assocs $ ppVersion <$> bpPackages bp
 
-buildplanConsumers :: ConsumerOption -> Snapshot -> IO ()
-buildplanConsumers opts snap = do
+buildplanConsumers :: Int -> Snapshot -> IO ()
+buildplanConsumers threshold snap = do
   bp <- getBuildPlan snap
   traverse_ putPkgConsumption $ Data.Map.Strict.assocs $ ppUsers <$> bpPackages bp
   where
     putPkgConsumption :: (PackageName, Set.Set PackageName) -> IO ()
     putPkgConsumption (p, users) = do
       let n = length users
-      when (n >= threshold opts) $
+      when (n >= threshold) $
         putStrLn $ show n ++ " " ++ unPackageName p
 
 evalPackageBuildPlan :: Snapshot -> Pkg -> (PackagePlan -> String) -> IO ()
