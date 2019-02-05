@@ -82,34 +82,34 @@ main :: IO ()
 main =
   simpleCmdArgs (Just version) "Stackage query tool" "" $
   subcommands
-    [ Subcommand "package" (buildplanPackage <$> parseSnap <*> parsePkg)
-      "Show version of PKG in SNAP"
-    , Subcommand "users" (buildplanUsers <$> parseSnap <*> parsePkg)
-      "Revdeps for PKG in SNAP"
-    , Subcommand "github" (buildplanGithub <$> parseSnap <*> parsePkg)
-      "Stackage owners for PKG in SNAP"
-    , Subcommand "constraints" (buildplanConstraints <$> parseSnap <*> parsePkg)
-      "Stackage constraints for PKG in SNAP"
-    , Subcommand "dependencies" (buildplanDependencies <$> parseSnap <*> parsePkg)
-      "Dependencies for PKG in SNAP"
-    , Subcommand "executables" (buildplanExecutables <$> parseSnap <*> parsePkg)
-      "Executables of PKG in SNAP"
-    , Subcommand "modules" (buildplanModules <$> parseSnap <*> parsePkg)
-      "Modules of PKG in SNAP"
-    , Subcommand "latest" (buildplanLatest <$> parseProject)
-      "Latest snap for PROJECT (nightly or lts)"
-    , Subcommand "ghc" (buildplanGHC <$> parseSnap)
-      "GHC version for SNAP"
-    , Subcommand "core" (buildplanCore <$> parseSnap)
-      "GHC core libraries for SNAP"
-    , Subcommand "tools" (buildplanTools <$> parseSnap <*> optional parsePkg)
-      "Tools for SNAP"
-    , Subcommand "packages" (buildplanPackages <$> parseSnap)
-      "All packages in SNAP"
-    , Subcommand "consumers" (buildplanConsumers <$> consumeParser <*> parseSnap)
-      "No of users of packages in SNAP"
-    , Subcommand "config" (stackageConfig <$> parseSnap)
-      "Download cabal.config file for SNAP"
+    [ Subcommand "package" "Show version of PKG in SNAP" $
+      buildplanPackage <$> parseSnap <*> parsePkg
+    , Subcommand "users" "Revdeps for PKG in SNAP" $
+      buildplanUsers <$> parseSnap <*> parsePkg
+    , Subcommand "github" "Stackage owners for PKG in SNAP" $
+      buildplanGithub <$> parseSnap <*> parsePkg
+    , Subcommand "constraints" "Stackage constraints for PKG in SNAP" $
+      buildplanConstraints <$> parseSnap <*> parsePkg
+    , Subcommand "dependencies" "Dependencies for PKG in SNAP" $
+      buildplanDependencies <$> parseSnap <*> parsePkg
+    , Subcommand "executables" "Executables of PKG in SNAP" $
+      buildplanExecutables <$> parseSnap <*> parsePkg
+    , Subcommand "modules" "Modules of PKG in SNAP" $
+      buildplanModules <$> parseSnap <*> parsePkg
+    , Subcommand "latest" "Latest snap for PROJECT (nightly or lts)" $
+      buildplanLatest <$> parseProject
+    , Subcommand "ghc" "GHC version for SNAP" $
+      buildplanGHC <$> parseSnap
+    , Subcommand "core" "GHC core libraries for SNAP" $
+      buildplanCore <$> parseSnap
+    , Subcommand "tools" "Tools for SNAP" $
+      buildplanTools <$> parseSnap <*> optional parsePkg
+    , Subcommand "packages" "All packages in SNAP" $
+      buildplanPackages <$> parseSnap
+    , Subcommand "consumers" "No of users of packages in SNAP" $
+      buildplanConsumers <$> consumeParser <*> parseSnap
+    , Subcommand "config" "Download cabal.config file for SNAP" $
+      stackageConfig <$> parseSnap
     ]
 
 topurl :: String
