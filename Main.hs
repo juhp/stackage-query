@@ -6,10 +6,6 @@ import Data.Char (isDigit)
 import Data.List
 import qualified Data.Map.Strict (assocs, keys, lookup)
 import Data.Maybe
-#if (defined(MIN_VERSION_base) && MIN_VERSION_base(4,11,1))
-#else
-import Data.Monoid ((<>))
-#endif
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Version
@@ -67,7 +63,7 @@ type Pkg = String
 
 consumeParser :: Parser Int
 consumeParser = option auto
-  (optionMods ('m', "minimum", "THRESHOLD", "Show packages with at least THRESHOLD consumers (default 5)") <> value 5)
+  (optionalMods 'm' "minimum" "THRESHOLD" "Show packages with at least THRESHOLD consumers (default 5)" 5)
 
 parsePkg :: Parser Pkg
 parsePkg = strArg "PKG"
