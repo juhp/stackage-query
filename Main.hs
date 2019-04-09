@@ -62,8 +62,8 @@ instance Read Project where
 type Pkg = String
 
 consumeParser :: Parser Int
-consumeParser = option auto
-  (optionalMods 'm' "minimum" "THRESHOLD" "Show packages with at least THRESHOLD consumers (default 5)" 5)
+consumeParser =
+  optionalWith auto 'm' "minimum" "THRESHOLD" "Show packages with at least THRESHOLD consumers (default 5)" 5
 
 parsePkg :: Parser Pkg
 parsePkg = strArg "PKG"

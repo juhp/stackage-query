@@ -35,7 +35,7 @@ executable stackage
                        safe,
                        semigroups,
                        simple-cmd,
-                       simple-cmd-args,
+                       simple-cmd-args >= 0.1.1,
                        text,
                        time,
                        unordered-containers,
