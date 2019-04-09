@@ -181,7 +181,7 @@ git_ dir c args =
 
 cloneProject :: FilePath -> Project -> IO ()
 cloneProject dir proj = do
-  let url = "git://github.com/fpco" </> show proj
+  let url = "git://github.com/commercialhaskell" </> show proj
   putStrLn $ "Cloning " ++ url
   git_ dir "clone" [url]
 
