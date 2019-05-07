@@ -1,5 +1,10 @@
 # Revision history for stackage-query
 
+## 0.2.0  -- 2019-05-08
+- download yaml files directly from github instead of huge git repos
+  (http-directory looks in stackage.org and then curl downloads raw github yaml)
+- use simple-cmd-args
+
 ## 0.1.3  -- 2018-11-15
 - bundle Stackage.Types from old stackage-types package
 - updates to build with Cabal-2 etc

@@ -1,7 +1,7 @@
 name:                stackage-query
 version:             0.2.0
-synopsis:            Stackage package query
-description:         Tool to query package metadata in Stackage
+synopsis:            Tool for querying Stackage
+description:         A commandline tool to query metadata of Stackage packages
 license:             MIT
 license-file:        LICENSE
 homepage:            https://github.com/juhp/stackage-query
