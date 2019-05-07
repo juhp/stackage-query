@@ -281,3 +281,11 @@ buildplanModules :: Snapshot -> Pkg -> IO ()
 buildplanModules snap pkg =
   evalPackageBuildPlan snap pkg (unlines . map T.unpack . Set.toList. sdModules . ppDesc)
 
+#if (defined(MIN_VERSION_directory) && MIN_VERSION_directory(1,2,3))
+#else
+withCurrentDirectory :: FilePath -> IO a -> IO a
+withCurrentDirectory dir action =
+  bracket getCurrentDirectory setCurrentDirectory $ \ _ -> do
+    setCurrentDirectory dir
+    action
+#endif
