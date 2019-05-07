@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE CPP               #-}
 
+#if (defined(MIN_VERSION_directory) && MIN_VERSION_directory(1,2,3))
+#else
+import Control.Exception (bracket)
+#endif
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
 import Data.Char (isDigit)
