@@ -30,7 +30,7 @@ module Stackage.Types
     , intersectVersionRanges
     ) where
 
-import           Control.Applicative             ((<$>), (<*>), (<|>))
+import           Control.Applicative             ((<|>))
 import           Control.Arrow                   ((&&&))
 import           Control.Exception               (Exception)
 import           Control.Monad.Catch             (MonadThrow, throwM)
