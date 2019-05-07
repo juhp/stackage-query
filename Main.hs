@@ -64,11 +64,6 @@ instance Show Project where
   show LTS = "lts-haskell"
   show Nightly = "stackage-nightly"
 
-instance Read Project where
-  readsPrec _ "lts" = [(LTS,"")]
-  readsPrec _ "nightly" = [(Nightly,"")]
-  readsPrec _ _ = []
-
 type Pkg = String
 
 consumeParser :: Parser Int
@@ -80,9 +75,6 @@ parsePkg = strArg "PKG"
 
 parseSnap :: Parser Snapshot
 parseSnap = argument auto $ metavar "SNAP"
-
--- parseProject :: Parser Project
--- parseProject = argument auto $ metavar "PROJECT"
 
 main :: IO ()
 main =
@@ -250,10 +242,6 @@ buildplanUsers snap pkg =
 buildplanGithub :: Snapshot -> Pkg -> IO ()
 buildplanGithub snap pkg =
   evalPackageBuildPlan snap pkg (unwords . Set.elems . Set.map T.unpack . ppGithubPings)
-
--- projectToSnap :: Project -> Snapshot
--- projectToSnap Nightly = LatestNightly
--- projectToSnap LTS = LatestLTS
 
 latestSnap :: Snapshot -> IO Snapshot
 latestSnap snap = do
