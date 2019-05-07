@@ -1,5 +1,5 @@
 help:
-	@echo "devel targets: git-tag, sdist, version, git-push, upload, copy"
+	@echo "devel targets: git-tag, sdist, version, git-push, upload"
 
 sdist:
 	./make-dist $(VERSION)

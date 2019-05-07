@@ -1,5 +1,5 @@
 name:                stackage-query
-version:             0.1.3
+version:             0.2.0
 synopsis:            Stackage package query
 description:         Tool to query package metadata in Stackage
 license:             MIT
@@ -25,10 +25,12 @@ executable stackage
   build-depends:       base  >= 4.7 && < 5,
                        Cabal >= 1.22,
                        aeson,
+                       bytestring,
                        containers,
                        directory,
                        exceptions >= 0.6,
                        hashable,
+                       http-directory >= 0.1.2,
                        filepath,
                        optparse-applicative >= 0.13,
                        process,
@@ -38,6 +40,7 @@ executable stackage
                        simple-cmd-args >= 0.1.1,
                        text,
                        time,
+                       unix,
                        unordered-containers,
                        vector,
                        yaml
