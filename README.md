@@ -5,23 +5,22 @@
 
 # Stackage-Query
 
-Small tool that queries package versions on Stackage
-via the stackage-nightly and lts-haskell repos.
+Small tool that queries package metadata from Stackage snapshots
+using the yaml files from stackage-nightly and lts-haskell.
 
 Example usage:
 
 ```
-$ stackage package lts-7 pandoc
-1.17.1
-$ stackage core lts-8
+$ stackage package lts pandoc
+2.5
+$ stackage core lts-12
 <list of ghc library versions>
-$ stackage packages lts | wc -l
-2269
-$ stackage consumers lts --minimum 500
-542 mtl
-824 text
+$ stackage packages lts-13.20 | wc -l
+2322
+$ stackage consumers lts-12 --minimum 500
+867 text
 $ stackage users nightly pandoc
-BlogLiterately BlogLiterately-diagrams hakyll pandoc pandoc-citeproc patat wai-middleware-content-type yesod-markdown
+pandoc pandoc-citeproc pandoc-csv2table pandoc-pyplot
 $ stackage latest nightly
-nightly-2017-04-19
+nightly-2019-05-07
 ```
