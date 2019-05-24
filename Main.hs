@@ -15,9 +15,9 @@ import Data.Semigroup ((<>))
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Version
-import Options.Applicative
 import System.Directory
 import System.FilePath
+-- replace with warning
 import System.IO (hPutStrLn, stderr)
 import System.Posix.IO (stdInput)
 import System.Posix.Terminal (queryTerminal)
@@ -74,7 +74,7 @@ parsePkg :: Parser Pkg
 parsePkg = strArg "PKG"
 
 parseSnap :: Parser Snapshot
-parseSnap = argument auto $ metavar "SNAP"
+parseSnap = argumentWith auto "SNAP"
 
 main :: IO ()
 main =

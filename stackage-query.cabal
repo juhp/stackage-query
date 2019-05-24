@@ -32,7 +32,6 @@ executable stackage
                        hashable,
                        http-directory >= 0.1.2,
                        filepath,
-                       optparse-applicative >= 0.13,
                        process,
                        safe,
                        semigroups,
