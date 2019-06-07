@@ -28,7 +28,7 @@ import Data.Foldable (traverse_)
 import Data.Yaml hiding (Parser)
 import Distribution.Package (PackageName, unPackageName)
 import Distribution.Text (disp)
-import Network.HTTP.Directory (httpManager, httpRedirect)
+import Network.HTTP.Directory (httpRedirect')
 
 import SimpleCmd (cmd_)
 import SimpleCmdArgs
@@ -245,8 +245,7 @@ buildplanGithub snap pkg =
 
 latestSnap :: Snapshot -> IO Snapshot
 latestSnap snap = do
-  mgr <- httpManager
-  latest <- httpRedirect mgr $ topurl </> show snap
+  latest <- httpRedirect' $ topurl </> show snap
   return $ maybe snap (read . B.unpack . B.tail) latest
 
 buildplanLatest :: Snapshot -> IO ()
