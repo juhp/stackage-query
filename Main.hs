@@ -11,7 +11,10 @@ import Data.Char (isDigit)
 import Data.List
 import qualified Data.Map.Strict (assocs, keys, lookup)
 import Data.Maybe
+#if (defined(MIN_VERSION_base) && MIN_VERSION_base(4,11,0))
+#else
 import Data.Semigroup ((<>))
+#endif
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Version
